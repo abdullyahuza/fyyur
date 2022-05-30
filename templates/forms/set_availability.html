@@ -1,0 +1,19 @@
+{% extends 'layouts/main.html' %}
+{% block title %}New Show Listing{% endblock %}
+{% block content %}
+  <div class="form-wrapper">
+    <form method="POST" class="form">
+      <h3 class="form-heading">Add availabilty for "{{name}} <span><sup>({{artist_id}})</sup></span>"</h3>
+      <div class="form-group">
+        <label for="start_time">Start Time</label>
+        {{ form.start_time(class_ = 'form-control', placeholder='YYYY-MM-DD HH:MM', autofocus = true) }}
+      </div>
+      <div class="form-group">
+        <label for="start_time">End Time</label>
+        {{ form.end_time(class_ = 'form-control', placeholder='YYYY-MM-DD HH:MM', autofocus = true) }}
+      </div>
+      <input type="number" name="artist_id" value="{{artist_id}}" hidden>
+      <input type="submit" value="Add Availabilty" class="btn btn-primary btn-lg btn-block">
+    </form>
+  </div>
+{% endblock %}

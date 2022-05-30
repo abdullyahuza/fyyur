@@ -1,0 +1,48 @@
++++++++++++DATABASE+++++++++++
+
+VENUE
+	id
+	name
+	city
+	state
+	address
+	phone
+	genres
+	image_link
+	facebook_link
+	website_link
+	lookin_for_talent
+	seeking_description
+	
+
+ARTISTS
+	id
+	name
+	city
+	state
+	phone
+	genres
+	image_link
+	facebook_link
+	website_link
+	looking_for_venues
+	seeking_description
+
+SHOWS
+	venue_id
+    venue_name
+    artist_id
+    artist_name
+    artist_image_link
+    start_time 
+
+++++++++++ROUTES++++++++++++++
+./venues
+	/id
+./artists
+	/id
+./shows
+
+./venues/create
+./artists/create
+./shows/create
