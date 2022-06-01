@@ -1,3 +1,4 @@
+# all the necessary imports needed for the app to run
 from imports import *
 
 #----------------------------------------------------------------------------#
@@ -9,10 +10,12 @@ app.config.from_object('config')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 
+# create tables if database exist
 with app.app_context():
     db.create_all()
-migrate = Migrate(app,db)
 
+# initiate flask migrate
+migrate = Migrate(app,db)
 
 
 #----------------------------------------------------------------------------#
@@ -39,6 +42,7 @@ app.jinja_env.filters['datetime'] = format_datetime
 # Home route
 @app.route('/')
 def index():
+  # query newly listed artist limit 10
   query_new_listed_artists = db.session.query(Artist.id, Artist.name, Artist.city, Artist.state).order_by(db.desc(Artist.id)).limit(10).all()
   new_listed_artists = []
   for nla in query_new_listed_artists:
@@ -48,6 +52,7 @@ def index():
     artist['city_state'] = nla.city +" "+ nla.state
     new_listed_artists.append(artist)
 
+  # query newly listed venues limit 10
   query_new_listed_venues = db.session.query(Venue.id, Venue.name, Venue.city, Venue.state).order_by(db.desc(Venue.id)).limit(10).all()
   new_listed_venues = []
   for nlv in query_new_listed_venues:
@@ -78,8 +83,8 @@ def venues():
     venue['venues'] = []
     _thisVenues = Venue.query.filter_by(city=city, state=state).all()
     for _thisVenue in _thisVenues:
-      shows_in_thisVenue = Show.query.filter_by(venueID=_thisVenue.id).all()
-      num_of_upcomming = len(getUpcommingShows(shows_in_thisVenue))
+      upcomming_shows_in_thisVenue = Show.query.filter_by(venueID=_thisVenue.id).filter(Show.startTime>datetime.now()).all()
+      num_of_upcomming = len(upcomming_shows_in_thisVenue)
       venue['venues'].append(
         {
           "id": _thisVenue.id,
@@ -130,11 +135,32 @@ def show_venue(venue_id):
     if venueData.looking_for_talent == True:
       data['seeking_description'] = venueData.seeking_description
     data['image_link'] = venueData.image_link
-    shows = Show.query.filter_by(venueID=venueData.id).all()
-    data['past_shows'] = getPastShows(shows)
-    data['upcoming_shows'] = getUpcommingShows(shows)
-    data['past_shows_count'] = len(getPastShows(shows))
-    data['upcoming_shows_count'] = len(getUpcommingShows(shows))
+
+    # A joined query to return upcomming shows base on the current venue id
+    upcoming_shows_query = db.session.query(Show).join(Venue).filter(Show.venueID == venue_id).filter(Show.startTime>datetime.now()).all()
+    data['upcoming_shows'] = []
+    for us in upcoming_shows_query:
+      show = {}
+      show['artist_id'] = us.artistID
+      show['venue_id'] = us.venueID
+      show['start_time'] = us.startTime.isoformat()
+      show['artist_name'] = Artist.query.filter_by(id=us.artistID).first().name
+      show['artist_image_link'] = Artist.query.filter_by(id=us.artistID).first().image_link
+      data['upcoming_shows'].append(show)    
+    data['upcoming_shows_count'] = len(data['upcoming_shows'])
+
+    # A joined query to return past shows base on the current venue id
+    past_shows_query = db.session.query(Show).join(Venue).filter(Show.venueID == venue_id).filter(Show.startTime<datetime.now()).all()
+    data['past_shows'] = []
+    for ps in past_shows_query:
+      show = {}
+      show['artist_id'] = ps.artistID
+      show['venue_id'] = ps.venueID
+      show['start_time'] = ps.startTime.isoformat()
+      show['artist_name'] = Artist.query.filter_by(id=ps.artistID).first().name
+      show['artist_image_link'] = Artist.query.filter_by(id=ps.artistID).first().image_link
+      data['past_shows'].append(show)    
+    data['past_shows_count'] = len(data['past_shows'])
 
     return render_template('pages/show_venue.html', venue=data)
   else:
@@ -276,11 +302,32 @@ def show_artist(artist_id):
   data['image_link'] = ArtistData.image_link
   data['facebook_link'] = ArtistData.facebook_link
   data['website_link'] = ArtistData.website_link
-  shows = Show.query.filter_by(artistID=ArtistData.id).all()
-  data['past_shows'] = getPastShows(shows)
-  data['upcoming_shows'] = getUpcommingShows(shows)
-  data['past_shows_count'] = len(getPastShows(shows))
-  data['upcoming_shows_count'] = len(getUpcommingShows(shows))
+  
+    # A joined query to return upcoming shows base on the current artist id
+  upcoming_shows_query = db.session.query(Show).join(Artist).filter(Show.artistID == artist_id).filter(Show.startTime>datetime.now()).all()
+  data['upcoming_shows'] = []
+  for us in upcoming_shows_query:
+    show = {}
+    show['artist_id'] = us.artistID
+    show['venue_id'] = us.venueID
+    show['start_time'] = us.startTime.isoformat()
+    show['venue_name'] = Venue.query.filter_by(id=us.venueID).first().name
+    show['venue_image_link'] = Venue.query.filter_by(id=us.venueID).first().image_link
+    data['upcoming_shows'].append(show)    
+  data['upcoming_shows_count'] = len(data['upcoming_shows'])
+
+    # A joined query to return past shows base on the current artist id
+  past_shows_query = db.session.query(Show).join(Artist).filter(Show.artistID == artist_id).filter(Show.startTime<datetime.now()).all()
+  data['past_shows'] = []
+  for ps in past_shows_query:
+    show = {}
+    show['artist_id'] = ps.artistID
+    show['venue_id'] = ps.venueID
+    show['start_time'] = ps.startTime.isoformat()
+    show['venue_name'] = Venue.query.filter_by(id=ps.venueID).first().name
+    show['venue_image_link'] = Venue.query.filter_by(id=ps.venueID).first().image_link
+    data['past_shows'].append(show)    
+  data['past_shows_count'] = len(data['past_shows'])
 
   return render_template('pages/show_artist.html', artist=data)
 
@@ -570,37 +617,6 @@ def not_found_error(error):
 def server_error(error):
     return render_template('errors/500.html'), 500
 
-# function to return upcomming shows base on artist or venue
-def getUpcommingShows(shows):
-  upcommingShows = []
-  for s in shows:
-    if s.startTime > datetime.now():
-      show = {}
-      show['artist_id'] = s.artistID
-      show['venue_id'] = s.venueID
-      show['artist_name'] = Artist.query.filter_by(id=s.artistID).first().name
-      show['venue_name'] = Venue.query.filter_by(id=s.venueID).first().name
-      show['artist_image_link'] = Artist.query.filter_by(id=s.artistID).first().image_link
-      show['start_time'] = s.startTime.isoformat()
-
-      upcommingShows.append(show)
-  return upcommingShows
-
-# function to return past shows base on artist or venue
-def getPastShows(shows):
-  pastShows = []
-  for s in shows:
-    if s.startTime < datetime.now():
-      show = {}
-      show['artist_id'] = s.artistID
-      show['venue_id'] = s.venueID
-      show['artist_name'] = Artist.query.filter_by(id=s.artistID).first().name
-      show['venue_name'] = Venue.query.filter_by(id=s.venueID).first().name
-      show['artist_image_link'] = Artist.query.filter_by(id=s.artistID).first().image_link
-      show['start_time'] = s.startTime.isoformat()
-
-      pastShows.append(show)
-  return pastShows
 
 if not app.debug:
     file_handler = FileHandler('error.log')
