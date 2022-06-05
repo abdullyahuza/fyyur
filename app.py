@@ -109,7 +109,7 @@ def search_venues():
       venue = {}
       venue['id'] = v.id
       venue['name'] = v.name
-      venue['num_upcoming_shows'] = len(getUpcommingShows(shows))
+      venue['num_upcoming_shows'] = len(shows)
       response['data'].append(venue)
       response['count'] = len(response['data'])
 
@@ -280,7 +280,7 @@ def search_artists():
       artist = {}
       artist['id'] = a.id
       artist['name'] = a.name
-      artist['num_upcoming_shows'] = len(getUpcommingShows(shows))
+      artist['num_upcoming_shows'] = len(shows)
       response['data'].append(artist)
       response['count'] = len(response['data'])
   return render_template('pages/search_artists.html', results=response, search_term=request.form.get('search_term', ''))
