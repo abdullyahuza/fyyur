@@ -270,9 +270,7 @@ def create_venue_submission():
 
 @app.route('/venues/<venue_id>/delete', methods=['DELETE'])
 def delete_venue(venue_id):
-    # TODO: Complete this endpoint for taking a venue_id, and using
-    # SQLAlchemy ORM to delete a record. Handle cases where the session commit
-    # could fail.
+
     error = False
     try:
         venue = Venue.query.get(venue_id)
@@ -335,7 +333,6 @@ def search_artists():
             ''))
 
 # view an artist route
-
 
 @app.route('/artists/<int:artist_id>')
 def show_artist(artist_id):
